@@ -1,0 +1,38 @@
+package com.example.demo.service;
+
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class SbiClientService {
+
+    private final RestTemplate restTemplate;
+
+    public SbiClientService() {
+        this.restTemplate = new RestTemplate();
+    }
+
+    public String sendNeIdToSBI(int neId, String outputPath) {
+        String url = "http://localhost:8082/sbi/generate-file"; // SBI endpoint
+
+        // Set JSON headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // JSON request body
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("neId", neId);
+        requestBody.put("outputPath", outputPath);
+
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+        // Send POST request
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+
+        return response.getBody(); // SBI should return file path
+    }
+}
