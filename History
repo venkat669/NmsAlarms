@@ -1,0 +1,17 @@
+public void deleteAlarmById(int id) {
+    Optional<AlarmsNew> alarmOpt = alarmsNewRepository.findById(id);
+    if (alarmOpt.isPresent()) {
+        AlarmsNew alarm = alarmOpt.get();
+
+        // Delete from alarmsnew
+        alarmsNewRepository.deleteById(id);
+
+        // Update history: set time_resolved to current timestamp
+        Optional<History> historyOpt = historyRepository.findById(id);
+        if (historyOpt.isPresent()) {
+            History history = historyOpt.get();
+            history.setTimeResolved(Instant.now().toString());
+            historyRepository.save(history);
+        }
+    }
+}
