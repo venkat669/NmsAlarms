@@ -1,0 +1,44 @@
+ import com.example.demo.xmlmodel.NeidXml;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.File;
+import java.nio.file.Paths;
+
+@Service
+public class XmlProcessorService {
+
+    public void processXmlFromSbi(String folderPath) {
+        // 1. Call SBI API to get the generated XML file path
+        RestTemplate restTemplate = new RestTemplate();
+        String sbiApiUrl = "http://sbi-service/generateXml"; // Replace with actual SBI API URL
+
+        // Send folder path as JSON or param based on how SBI expects it
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                sbiApiUrl,
+                folderPath, // Wrap in HttpEntity if needed
+                String.class
+        );
+
+        String fullFilePath = response.getBody();
+        System.out.println("Received file path from SBI: " + fullFilePath);
+
+        try {
+            // 2. Parse XML file using Jackson XmlMapper
+            File xmlFile = Paths.get(fullFilePath).toFile();
+            XmlMapper xmlMapper = new XmlMapper();
+            NeidXml neidXml = xmlMapper.readValue(xmlFile, NeidXml.class);
+
+            // 3. Use timestamp and alarms list
+            System.out.println("Timestamp: " + neidXml.getTimestamp());
+            neidXml.getNeids().forEach(alarm -> System.out.println("Alarm ID: " + alarm.getNe_id()));
+
+            // Insert into DB or further process here...
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
