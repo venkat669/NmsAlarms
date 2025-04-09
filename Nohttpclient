@@ -1,0 +1,40 @@
+ import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+@Service
+public class XmlProcessorService {
+
+    private final WebClient webClient = WebClient.create("http://localhost:8085");
+
+    public void fetchXmlFromSbiAndProcess(String outputDirPath) {
+        webClient
+            .get()
+            .uri("/api/generate")
+            .bodyValue(new OutputDirRequest(outputDirPath)) // sending JSON body with GET
+            .retrieve()
+            .bodyToMono(String.class)
+            .doOnNext(filePath -> {
+                System.out.println("Received file path: " + filePath);
+                // TODO: add your XML parsing logic here
+            })
+            .doOnError(Throwable::printStackTrace)
+            .subscribe();
+    }
+
+    static class OutputDirRequest {
+        private String outputDir;
+
+        public OutputDirRequest(String outputDir) {
+            this.outputDir = outputDir;
+        }
+
+        public String getOutputDir() {
+            return outputDir;
+        }
+
+        public void setOutputDir(String outputDir) {
+            this.outputDir = outputDir;
+        }
+    }
+}
