@@ -1,0 +1,49 @@
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class XmlProcessorService {
+
+    public void fetchAndProcessXml(String outputDirPath) {
+        String url = "http://localhost:8085/api/generate";
+
+        try {
+            // Prepare request body
+            Map<String, String> body = new HashMap<>();
+            body.put("outputDir", outputDirPath);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            RestTemplate restTemplate = new RestTemplate();
+
+            // POST to SBI and get XML file path
+            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+            String filePath = response.getBody();
+            System.out.println("Received XML file path: " + filePath);
+
+            // Parse XML
+            XmlMapper xmlMapper = new XmlMapper();
+            File xmlFile = new File(filePath);
+            NeidXml neidXml = xmlMapper.readValue(xmlFile, NeidXml.class);
+
+            // Example processing
+            System.out.println("Timestamp: " + neidXml.getTimestamp());
+            neidXml.getNeids().forEach(alarm -> {
+                System.out.println("NE ID: " + alarm.getNe_id());
+                System.out.println("Alarm Text: " + alarm.getText());
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
