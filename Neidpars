@@ -1,6 +1,9 @@
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -14,7 +17,7 @@ public class XmlProcessorService {
         String sbiUrl = "http://localhost:8085/api/generate";
 
         try {
-            // Prepare JSON body
+            // Prepare request body
             ObjectMapper mapper = new ObjectMapper();
             String jsonBody = mapper.writeValueAsString(new OutputDirRequest(outputDirPath));
 
@@ -23,8 +26,12 @@ public class XmlProcessorService {
 
             HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
 
-            // Use exchange() for GET with body
-            RestTemplate restTemplate = new RestTemplate();
+            // Allow GET with body using Apache HttpClient
+            HttpClient httpClient = HttpClients.createDefault();
+            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+            RestTemplate restTemplate = new RestTemplate(requestFactory);
+
+            // Make the GET request
             ResponseEntity<String> response = restTemplate.exchange(
                     sbiUrl,
                     HttpMethod.GET,
@@ -32,13 +39,11 @@ public class XmlProcessorService {
                     String.class
             );
 
-            // Extract filePath from response
-            JsonNode jsonNode = mapper.readTree(response.getBody());
-            String filePath = jsonNode.get("filePath").asText();
-
+            // Extract raw string file path
+            String filePath = response.getBody().trim(); // trimming extra whitespace or newlines
             System.out.println("Received file path: " + filePath);
 
-            // Parse the XML
+            // Parse XML file
             File xmlFile = Paths.get(filePath).toFile();
             XmlMapper xmlMapper = new XmlMapper();
             NeidXml neidXml = xmlMapper.readValue(xmlFile, NeidXml.class);
@@ -53,7 +58,7 @@ public class XmlProcessorService {
         }
     }
 
-    // Helper class for JSON body
+    // Request body class
     static class OutputDirRequest {
         public String outputDir;
         public OutputDirRequest(String outputDir) {
